@@ -2,11 +2,11 @@
 
 A web app for student elections where every eligible student votes **once**, **nobody can see who voted for whom** (not the organisers, not the candidates), and **anyone can verify the final count** on the blockchain.
 
-Voters need no crypto wallet and pay nothing. They sign up with their college email and vote from their phone or laptop.
+Voters need no crypto wallet and pay nothing. They sign up with their enrollment number (verified through their college email) and vote from their phone or laptop.
 
 ## How it works
 
-1. **Register:** a student enters their college email and gets a sign-up link. Opening it creates a secret voter key *inside their browser*. Only a public fingerprint of that key (a Semaphore identity commitment) is added to the on-chain voter list. The email is only used to check eligibility and to stop anyone registering twice.
+1. **Register:** a student enters their enrollment number. The app looks it up in the committee's official roster and emails a sign-up link to the college address on record for that number. Opening the link creates a secret voter key *inside their browser*. Only a public fingerprint of that key (a Semaphore identity commitment) is added to the on-chain voter list. The enrollment number is only used to check eligibility and to stop anyone registering twice.
 2. **Vote:** the browser produces a [Semaphore](https://semaphore.pse.dev) zero-knowledge proof: "I am one of the registered voters, here is my vote", without revealing which voter. A nullifier, derived from the secret key and this election, makes a second vote from the same key fail.
 3. **Relay:** the server submits the proof to the contract and pays the gas, so voters never touch crypto. The proof carries no identity, so the server can't tell who voted either.
 4. **Results:** the contract keeps the count and publishes it only after the organiser closes voting.
@@ -33,7 +33,7 @@ cp .env.example .env.local
 #   ELECTION_ADDRESS=<printed by deploy>
 #   RELAYER_PRIVATE_KEY=<"Account #0" private key printed by `hardhat node`>
 #   AUTH_SECRET=<any 32+ character string>
-#   ALLOWED_EMAIL_DOMAINS=college.edu
+#   VOTER_ROSTER="enrollment,email;22BCS001,alice@college.edu;22BCS002,bob@college.edu"
 npm run dev
 ```
 
@@ -58,22 +58,31 @@ Contract tests: `cd contracts && npm test` (downloads the zero-knowledge circuit
    ```
 3. **Email sending.** Create a free [Resend](https://resend.com) account, verify a domain you own (or use their test sender while trying it out) and get an API key.
 4. **Host the web app on Vercel** (free): import this GitHub repo, set the root directory to `web`, and add the variables from `web/.env.example`:
-   `RPC_URL`, `ELECTION_ADDRESS`, `RELAYER_PRIVATE_KEY`, `ALLOWED_EMAIL_DOMAINS` (or `VOTER_ALLOWLIST`), `AUTH_SECRET`, `APP_URL`, `RESEND_API_KEY`, `EMAIL_FROM`.
-5. **Eligibility.** Best: get the official voter list from the election committee and put it in `VOTER_ALLOWLIST`. Otherwise `ALLOWED_EMAIL_DOMAINS` lets anyone with a college address register.
+   `RPC_URL`, `ELECTION_ADDRESS`, `RELAYER_PRIVATE_KEY`, `VOTER_ROSTER`, `AUTH_SECRET`, `APP_URL`, `RESEND_API_KEY`, `EMAIL_FROM`.
+5. **Voter roster.** Ask the election committee for a CSV of eligible students with two columns, `enrollment,email`, and paste it into `VOTER_ROSTER`. Keep it out of git. Without a roster the app falls back to `ALLOWED_EMAIL_DOMAINS`, where anyone with a college address can register with their email.
+
+## Why enrollment numbers alone aren't enough
+
+Enrollment numbers are sequential, so anyone can guess a classmate's. If typing a number were enough to register, someone could register (and vote) in a classmate's place. So the number is only used to *look up* the student. The sign-up link always goes to the college email the roster has for that number, and only someone who can open that inbox can finish registering.
+
+- Typing someone else's number just sends a link to *their* inbox. The email tells them what happened, and they can still use it to register themselves.
+- Each enrollment number can register once. The contract stores a keyed hash of it, so outsiders can't hash sequential numbers to see who has registered.
+- If a student sees "already registered" and it wasn't them, their college email has been compromised or someone had access to their device. They should tell the committee immediately. Because votes are anonymous, a stolen registration can't be traced to its vote afterwards, so the committee should treat this as a reason to rerun the election if the margin is close.
 
 ## Rolling it out
 
 1. Get the election committee's agreement first: the result only counts if they accept it. Show them this README and a mock run.
-2. Do a mock election with 5 to 10 friends on Base Sepolia.
-3. Deploy a fresh contract for the real election and announce the link with the dates.
-4. **Registration window** (1 to 2 days): students register on the device they'll vote from. Remind them to download their backup key.
-5. `ACTION=start`: **voting window** (1 day). Keep it at least a few hours so many people vote at overlapping times.
-6. `ACTION=end`: results appear on `/results`. Share the contract address so anyone can check it on [basescan](https://sepolia.basescan.org).
+2. Get the official `enrollment,email` roster from them.
+3. Do a mock election with 5 to 10 friends on Base Sepolia.
+4. Deploy a fresh contract for the real election and announce the link with the dates.
+5. **Registration window** (1 to 2 days): students register on the device they'll vote from. Remind them to download their backup key.
+6. `ACTION=start`: **voting window** (1 day). Keep it at least a few hours so many people vote at overlapping times.
+7. `ACTION=end`: results appear on `/results`. Share the contract address so anyone can check it on [basescan](https://sepolia.basescan.org).
 
 ## What is and isn't private
 
 Protected:
-- No one can link a vote to a person or email: votes are zero-knowledge proofs, and emails are only stored on-chain as keyed hashes.
+- No one can link a vote to a person, enrollment number or email: votes are zero-knowledge proofs, and enrollment numbers are only stored on-chain as keyed hashes.
 - One vote per registered student, enforced by the contract.
 - The count is public and can't be changed after the fact.
 

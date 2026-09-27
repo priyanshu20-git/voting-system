@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { emailHash, verifySignupToken } from "@/lib/auth"
+import { verifySignupToken, voterIdHash } from "@/lib/auth"
 import { explainError, organiserElection, sendWithRetry } from "@/lib/chain"
 
 // Commitments are elements of the BN254 scalar field used by Semaphore.
@@ -8,8 +8,8 @@ const SNARK_FIELD = 218882428718392752222464057452572750885483644004160343436982
 /** Step 2 of registration: add the voter's anonymous identity commitment on-chain. */
 export async function POST(req: Request) {
     const { token, commitment } = await req.json().catch(() => ({}))
-    const email = typeof token === "string" ? verifySignupToken(token) : null
-    if (!email) {
+    const voterId = typeof token === "string" ? verifySignupToken(token) : null
+    if (!voterId) {
         return NextResponse.json({ error: "This sign-up link is invalid or has expired." }, { status: 401 })
     }
 
@@ -23,8 +23,8 @@ export async function POST(req: Request) {
 
     try {
         const election = organiserElection()
-        await election.registerVoter.staticCall(value, emailHash(email))
-        const txHash = await sendWithRetry(() => election.registerVoter(value, emailHash(email)))
+        await election.registerVoter.staticCall(value, voterIdHash(voterId))
+        const txHash = await sendWithRetry(() => election.registerVoter(value, voterIdHash(voterId)))
         return NextResponse.json({ ok: true, txHash })
     } catch (err) {
         return NextResponse.json({ error: explainError(err) }, { status: 400 })

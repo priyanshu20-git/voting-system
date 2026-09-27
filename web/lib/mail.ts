@@ -20,7 +20,8 @@ export async function sendSignupEmail(to: string, link: string, title: string): 
             subject: `Your sign-up link for ${title}`,
             html: `<p>Open this link <strong>on the phone or laptop you will vote from</strong> to register as a voter for <strong>${escapeHtml(title)}</strong>:</p>
 <p><a href="${link}">Register to vote</a></p>
-<p>The link works once and expires in 30 minutes. Your vote stays anonymous: this email only proves you are eligible.</p>`
+<p>The link expires in 30 minutes. Your vote stays anonymous: this email only proves you are eligible.</p>
+<p>If you did not ask for this, someone may have typed your enrollment number. You can still use this link to register yourself; nobody can use it without access to your inbox.</p>`
         })
     })
     if (!res.ok) throw new Error(`Email provider returned ${res.status}`)

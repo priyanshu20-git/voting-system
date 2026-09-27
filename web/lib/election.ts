@@ -7,6 +7,7 @@ export type ElectionState = {
     voters: string[]
     totalVotes: string
     results: string[] | null
+    signup: "enrollment" | "email"
 }
 
 export async function fetchElection(): Promise<ElectionState> {

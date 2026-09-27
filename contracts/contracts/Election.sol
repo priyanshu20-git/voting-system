@@ -17,7 +17,7 @@ contract Election {
 
     error NotOrganiser();
     error WrongPhase(Phase expected, Phase actual);
-    error EmailAlreadyRegistered();
+    error AlreadyRegistered();
     error InvalidCandidate();
     error InvalidScope();
     error NoCandidates();
@@ -39,9 +39,10 @@ contract Election {
     uint256[] private tally;
     uint256 public totalVotes;
 
-    /// @notice Keyed hashes of registered emails, so one email can register only once.
-    /// The hash is keyed with a server secret, so emails cannot be recovered from it.
-    mapping(bytes32 => bool) public emailRegistered;
+    /// @notice Keyed hashes of registered voter IDs (enrollment number, or email when no
+    /// roster is used), so each student can register only once. The hash is keyed with a
+    /// server secret, so the IDs cannot be recovered or guessed from it.
+    mapping(bytes32 => bool) public voterIdRegistered;
 
     modifier onlyOrganiser() {
         if (msg.sender != organiser) revert NotOrganiser();
@@ -70,13 +71,13 @@ contract Election {
 
     /// @notice Adds an eligible voter's anonymous identity commitment.
     /// @param identityCommitment Public commitment of the voter's Semaphore identity.
-    /// @param emailHash Keyed hash of the verified college email.
+    /// @param voterIdHash Keyed hash of the student's verified voter ID.
     function registerVoter(
         uint256 identityCommitment,
-        bytes32 emailHash
+        bytes32 voterIdHash
     ) external onlyOrganiser inPhase(Phase.Registration) {
-        if (emailRegistered[emailHash]) revert EmailAlreadyRegistered();
-        emailRegistered[emailHash] = true;
+        if (voterIdRegistered[voterIdHash]) revert AlreadyRegistered();
+        voterIdRegistered[voterIdHash] = true;
 
         semaphore.addMember(groupId, identityCommitment);
         voters.push(identityCommitment);

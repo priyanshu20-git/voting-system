@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { signupMode } from "@/lib/auth"
 import { PHASES, readElection } from "@/lib/chain"
 
 export const dynamic = "force-dynamic"
@@ -26,7 +27,8 @@ export async function GET() {
             groupId: groupId.toString(),
             voters: voters.map(String),
             totalVotes: totalVotes.toString(),
-            results
+            results,
+            signup: signupMode()
         })
     } catch (err) {
         console.error("election read failed", (err as Error).message)

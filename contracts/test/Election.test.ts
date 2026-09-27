@@ -18,7 +18,7 @@ const generateProof = (identity: Identity, group: Group, message: number, scope:
     )
 }
 
-const emailHash = (email: string) => ethers.keccak256(ethers.toUtf8Bytes(email))
+const voterIdHash = (email: string) => ethers.keccak256(ethers.toUtf8Bytes(email))
 
 describe("Election", () => {
     async function deployFixture() {
@@ -39,7 +39,7 @@ describe("Election", () => {
         const ctx = await deployFixture()
         const { election, identities } = ctx
         for (const [i, id] of identities.entries()) {
-            await election.registerVoter(id.commitment, emailHash(`student${i}@college.edu`))
+            await election.registerVoter(id.commitment, voterIdHash(`student${i}@college.edu`))
         }
         await election.startVoting()
         const group = new Group(identities.map((id) => id.commitment))
@@ -49,24 +49,24 @@ describe("Election", () => {
     describe("registration", () => {
         it("registers voters and exposes their commitments", async () => {
             const { election, identities } = await loadFixture(deployFixture)
-            await expect(election.registerVoter(identities[0].commitment, emailHash("a@college.edu")))
+            await expect(election.registerVoter(identities[0].commitment, voterIdHash("a@college.edu")))
                 .to.emit(election, "VoterRegistered")
                 .withArgs(identities[0].commitment)
             expect(await election.getVoters()).to.deep.equal([identities[0].commitment])
         })
 
-        it("rejects the same email twice", async () => {
+        it("rejects the same voter ID twice", async () => {
             const { election, identities } = await loadFixture(deployFixture)
-            await election.registerVoter(identities[0].commitment, emailHash("a@college.edu"))
+            await election.registerVoter(identities[0].commitment, voterIdHash("a@college.edu"))
             await expect(
-                election.registerVoter(identities[1].commitment, emailHash("a@college.edu"))
-            ).to.be.revertedWithCustomError(election, "EmailAlreadyRegistered")
+                election.registerVoter(identities[1].commitment, voterIdHash("a@college.edu"))
+            ).to.be.revertedWithCustomError(election, "AlreadyRegistered")
         })
 
         it("only lets the organiser register voters and change phase", async () => {
             const { election, stranger, identities } = await loadFixture(deployFixture)
             await expect(
-                election.connect(stranger).registerVoter(identities[0].commitment, emailHash("a@college.edu"))
+                election.connect(stranger).registerVoter(identities[0].commitment, voterIdHash("a@college.edu"))
             ).to.be.revertedWithCustomError(election, "NotOrganiser")
             await expect(election.connect(stranger).startVoting()).to.be.revertedWithCustomError(
                 election,
@@ -77,7 +77,7 @@ describe("Election", () => {
         it("closes registration once voting starts", async () => {
             const { election, identities } = await loadFixture(votingFixture)
             await expect(
-                election.registerVoter(new Identity().commitment, emailHash("late@college.edu"))
+                election.registerVoter(new Identity().commitment, voterIdHash("late@college.edu"))
             ).to.be.revertedWithCustomError(election, "WrongPhase")
             expect(identities.length).to.equal(3)
         })
