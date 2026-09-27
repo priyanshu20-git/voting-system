@@ -5,3 +5,4 @@ artifacts
 typechain-types
 coverage
 deployments/localhost.json
+deployments/hardhat.json
