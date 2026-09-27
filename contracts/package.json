@@ -1,0 +1,22 @@
+{
+  "name": "anon-vote-contracts",
+  "private": true,
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "node": "hardhat node",
+    "deploy": "hardhat run scripts/deploy.ts",
+    "phase": "hardhat run scripts/phase.ts"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "@semaphore-protocol/contracts": "^4.14.3",
+    "@semaphore-protocol/core": "^4.14.3",
+    "@semaphore-protocol/hardhat": "^4.14.3",
+    "@types/node": "^26.6.3",
+    "dotenv": "^18.0.4",
+    "hardhat": "^2.29.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}
